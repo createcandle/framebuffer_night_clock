@@ -1,4 +1,4 @@
-# framebuffer_night_clock
+# framebuffer night clock
 
 Simple framebuffer clock application for Linux. Shows centered 24h time in dark red color, using PNG files for the numbers.
 
