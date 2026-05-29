@@ -198,7 +198,7 @@ struct image_size display_png(struct framebuffer *fb, char *filename,
 		
 	    switch (fb->screeninfo.bits_per_pixel) {
 		    case 16:
-		        for (y = png_size.y - 1; y >= 80; y--) {
+		        for (y = png_size.y - 1; y >= 0; y--) {
 					/*printf("display_png: -y:  %d\n", y);*/
 		            png_bytep row = row_pointers[y];
 		            for (x = png_size.x - 1; x >= 0; x--) {
@@ -235,7 +235,7 @@ struct image_size display_png(struct framebuffer *fb, char *filename,
 		                mem_ptr++;
 		            }
 		            /* Move back to starting X coordinate */
-		            mem_ptr += png_size.x * (fb->screeninfo.bits_per_pixel/8);
+		            mem_ptr -= png_size.x * (fb->screeninfo.bits_per_pixel/8);
 		            /* Move down to the next row of pixels */
 		            mem_ptr += (fb->screeninfo.bits_per_pixel/8) * fb->screeninfo.xres;
 		        }
