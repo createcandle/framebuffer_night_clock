@@ -12,6 +12,7 @@ https://github.com/rayner/df3120-fbclock
 ### Building it:
 
 - clone this repository and enter its directory
+- `make clean`
 - `make`
 
 This will create the `fbclock` binary.
