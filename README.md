@@ -9,3 +9,20 @@ This is a modification of "df3120-fbclock":
 https://github.com/rayner/df3120-fbclock
 
 
+### Building it:
+
+- clone this repository and enter its directory
+- `make`
+
+This will create the `fbclock` binary, which you can run as follows:
+
+Normal display:
+```
+./fbclock
+```
+
+180 Degree rotated display:
+```
+./fbclock -r 1
+```
+
