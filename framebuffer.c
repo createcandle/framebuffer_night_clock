@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <png.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
@@ -134,17 +135,19 @@ size_t screen_size_in_bytes(struct framebuffer *fb) {
  * x_pos, y_pos: x and y coordinates at which to display it on the framebuffer.
  */
 struct image_size display_png(struct framebuffer *fb, char *filename, 
-                              int x_pos, int y_pos) {
+                              int x_pos, int y_pos, bool rotate) {
     png_byte header[8];
     FILE *fp;
     png_structp png_ptr;
     png_infop info_ptr;
     png_bytepp row_pointers;
-
     struct image_size png_size;
     int x, y;
     unsigned char *mem_ptr;
-
+	
+	printf("display_png: rotate:  %d\n", rotate);
+	printf("filename: %s\n", filename);
+	
     fp = fopen(filename, "rb");
     if (!fp) {
         perror("Failed to open file");
@@ -180,63 +183,136 @@ struct image_size display_png(struct framebuffer *fb, char *filename,
 
     /******** Process and display the image data ********/
 
-    /* Move to correct X/Y starting position */
-    mem_ptr = fb->mem_start;
-    mem_ptr += x_pos * (fb->screeninfo.bits_per_pixel/8);
-    mem_ptr += y_pos * (fb->screeninfo.bits_per_pixel/8) * fb->screeninfo.xres;
-    /* Loop through image data and write each pixel to the framebuffer */
-    switch (fb->screeninfo.bits_per_pixel) {
-    case 16:
-        for (y = 0; y < png_size.y; y++) {
-            png_bytep row = row_pointers[y];
-            for (x = 0; x < png_size.x; x++) {
-                /* Convert 8888 RGBA to 565 RGB */
-                png_bytep png_pixel = &(row[x*4]);
-                png_byte r = png_pixel[0];
-                png_byte g = png_pixel[1];
-                png_byte b = png_pixel[2];
-                uint16_t fb_pixel = 0;
+    
+   
+   
+   	if (rotate) {
+		
+	    /* Move to correct X/Y starting position */
+	    mem_ptr = fb->mem_start;
+	    mem_ptr += x_pos * (fb->screeninfo.bits_per_pixel/8);
+	    mem_ptr += y_pos * (fb->screeninfo.bits_per_pixel/8) * fb->screeninfo.xres;
+	    /* Loop through image data and write each pixel to the framebuffer */
+		
+	    switch (fb->screeninfo.bits_per_pixel) {
+		    case 16:
+		        for (y = png_size.y - 1; y >= 80; y--) {
+					/*printf("display_png: -y:  %d\n", y);*/
+		            png_bytep row = row_pointers[y];
+		            for (x = png_size.x - 1; x >= 0; x--) {
+						/*printf("display_png: -x:  %d\n", x);*/
+		                /* Convert 8888 RGBA to 565 RGB */
+		                png_bytep png_pixel = &(row[x*4]);
+		                png_byte r = png_pixel[0];
+		                png_byte g = png_pixel[1];
+		                png_byte b = png_pixel[2];
+		                uint16_t fb_pixel = 0;
 
-                r = r >> 3;
-                g = g >> 2;
-                b = b >> 3;
+		                r = r >> 3;
+		                g = g >> 2;
+		                b = b >> 3;
 
-                fb_pixel = fb_pixel | r;
-                fb_pixel = fb_pixel << 6;
-                /*
-				fb_pixel = fb_pixel | g;
-                fb_pixel = fb_pixel << 5;
-                fb_pixel = fb_pixel | b;
-				*/
-				fb_pixel = fb_pixel << 5;
+		                fb_pixel = fb_pixel | r;
+		                fb_pixel = fb_pixel << 6;
+		                /*
+						fb_pixel = fb_pixel | g;
+		                fb_pixel = fb_pixel << 5;
+		                fb_pixel = fb_pixel | b;
+						*/
+						fb_pixel = fb_pixel << 5;
 				
 				
-				if( strcmp( filename, "graphics/black.png") == 0 ){
-					fb_pixel = 0;
-				}
+						if( strcmp( filename, "graphics/black.png") == 0 ){
+							fb_pixel = 0;
+						}
 
-                /* Write pixel to framebuffer */
-                *mem_ptr = fb_pixel;
-                mem_ptr++;
-                *mem_ptr = (fb_pixel >> 8);
-                mem_ptr++;
-            }
-            /* Move back to starting X coordinate */
-            mem_ptr -= png_size.x * (fb->screeninfo.bits_per_pixel/8);
-            /* Move down to the next row of pixels */
-            mem_ptr += (fb->screeninfo.bits_per_pixel/8) * fb->screeninfo.xres;
-        }
-        break;
-    case 32:
-        for (y = 0; y < png_size.y; y++) {
-            memcpy(mem_ptr, row_pointers[y], png_size.x * 4);
-            /* Move down to the next row of pixels */
-            mem_ptr += (fb->screeninfo.bits_per_pixel/8) * fb->screeninfo.xres;
-        }
-        break;
-    default:
-        fprintf(stderr, "Unsupported pixel size: %d bits!\n", fb->screeninfo.bits_per_pixel);
-        break;
-    }
+		                /* Write pixel to framebuffer */
+		                *mem_ptr = fb_pixel;
+		                mem_ptr++;
+		                *mem_ptr = (fb_pixel >> 8);
+		                mem_ptr++;
+		            }
+		            /* Move back to starting X coordinate */
+		            mem_ptr += png_size.x * (fb->screeninfo.bits_per_pixel/8);
+		            /* Move down to the next row of pixels */
+		            mem_ptr += (fb->screeninfo.bits_per_pixel/8) * fb->screeninfo.xres;
+		        }
+		        break;
+		    case 32:
+		        for (y = 0; y < png_size.y; y++) {
+		            memcpy(mem_ptr, row_pointers[y], png_size.x * 4);
+		            /* Move down to the next row of pixels */
+		            mem_ptr += (fb->screeninfo.bits_per_pixel/8) * fb->screeninfo.xres;
+		        }
+		        break;
+		    default:
+		        fprintf(stderr, "Unsupported pixel size: %d bits!\n", fb->screeninfo.bits_per_pixel);
+		        break;
+		    
+		}
+   	} else {
+		
+	    /* Move to correct X/Y starting position */
+	    mem_ptr = fb->mem_start;
+	    mem_ptr += x_pos * (fb->screeninfo.bits_per_pixel/8);
+	    mem_ptr += y_pos * (fb->screeninfo.bits_per_pixel/8) * fb->screeninfo.xres;
+	    /* Loop through image data and write each pixel to the framebuffer */
+		
+	    switch (fb->screeninfo.bits_per_pixel) {
+		    case 16:
+		        for (y = 0; y < png_size.y; y++) {
+		            png_bytep row = row_pointers[y];
+		            for (x = 0; x < png_size.x; x++) {
+		                /* Convert 8888 RGBA to 565 RGB */
+		                png_bytep png_pixel = &(row[x*4]);
+		                png_byte r = png_pixel[0];
+		                png_byte g = png_pixel[1];
+		                png_byte b = png_pixel[2];
+		                uint16_t fb_pixel = 0;
+
+		                r = r >> 3;
+		                g = g >> 2;
+		                b = b >> 3;
+
+		                fb_pixel = fb_pixel | r;
+		                fb_pixel = fb_pixel << 6;
+		                /*
+						fb_pixel = fb_pixel | g;
+		                fb_pixel = fb_pixel << 5;
+		                fb_pixel = fb_pixel | b;
+						*/
+						fb_pixel = fb_pixel << 5;
+				
+				
+						if( strcmp( filename, "graphics/black.png") == 0 ){
+							fb_pixel = 0;
+						}
+
+		                /* Write pixel to framebuffer */
+		                *mem_ptr = fb_pixel;
+		                mem_ptr++;
+		                *mem_ptr = (fb_pixel >> 8);
+		                mem_ptr++;
+		            }
+		            /* Move back to starting X coordinate */
+		            mem_ptr -= png_size.x * (fb->screeninfo.bits_per_pixel/8);
+		            /* Move down to the next row of pixels */
+		            mem_ptr += (fb->screeninfo.bits_per_pixel/8) * fb->screeninfo.xres;
+		        }
+		        break;
+		    case 32:
+		        for (y = 0; y < png_size.y; y++) {
+		            memcpy(mem_ptr, row_pointers[y], png_size.x * 4);
+		            /* Move down to the next row of pixels */
+		            mem_ptr += (fb->screeninfo.bits_per_pixel/8) * fb->screeninfo.xres;
+		        }
+		        break;
+		    default:
+		        fprintf(stderr, "Unsupported pixel size: %d bits!\n", fb->screeninfo.bits_per_pixel);
+		        break;
+		    }
+		
+	}
+
     return png_size;
 }

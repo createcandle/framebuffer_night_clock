@@ -7,6 +7,7 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
 #include <math.h>
 #include <unistd.h>
@@ -25,13 +26,14 @@ int main(int argc, char *argv[]) {
     /* Display offset from top left of screen, in pixels */
     unsigned int x_offset = 100;
     unsigned int y_offset = 100;
+	bool rotate = false;
 	
 	
     /* Parse command-line options */
     int opt;
 	
 	
-    while ((opt = getopt(argc, argv, "x:y:")) != -1) {
+    while ((opt = getopt(argc, argv, "r:x:y:")) != -1) {
         switch (opt) {
         case 'x':
             x_offset = atoi(optarg);
@@ -39,11 +41,16 @@ int main(int argc, char *argv[]) {
         case 'y':
             y_offset = atoi(optarg);
             break;
+        case 'r':
+            rotate = atoi(optarg);
+            break;
         default:
             print_usage(argv[0]);
             exit(EXIT_FAILURE);
         }
     }
+	
+	printf("rotate:  %d\n", rotate);
 
     /* Set up framebuffer */
     new_framebuffer(&fb, "/dev/fb0");
@@ -56,7 +63,7 @@ int main(int argc, char *argv[]) {
 		
 		
         /* Display it */
-        display_time(tp, &fb, x_offset, y_offset);
+        display_time(tp, &fb, rotate, x_offset, y_offset);
 
         /* Wait for next update 
         sleep(SLEEP);*/
@@ -74,7 +81,7 @@ int main(int argc, char *argv[]) {
  * fb: pointer to framebuffer memory.
  * x_offset, y_offset: x and y position in pixels
  */
-void display_time(struct tm *tp, struct framebuffer *fb, int x_offset, int y_offset) {
+void display_time(struct tm *tp, struct framebuffer *fb, bool rotate, int x_offset, int y_offset) {
     
 	int x_pos = x_offset;
 	int y_pos = y_offset;
@@ -83,24 +90,38 @@ void display_time(struct tm *tp, struct framebuffer *fb, int x_offset, int y_off
 	struct image_size png_size;
 	
 	
+	y_pos = fb->screeninfo.yres;
+	y_pos = y_pos - 160;
+	y_pos = round(y_pos / 2);
+	
 	x_pos = fb->screeninfo.xres;
 	x_pos = x_pos - 600;
 	x_pos = round(x_pos / 2);
 	
+	display_png(fb, "graphics/black.png", 0, 0, 0);
 	
-	y_pos = fb->screeninfo.yres;
-	y_pos = y_pos - 160;
-	y_pos = round(y_pos / 2);
-	/*
-	printf("x_pos: %d\n", x_pos);
-	*/
+	display_png(fb, "graphics/black.png", x_pos, y_pos, 0);
 	
-	display_png(fb, "graphics/black.png", 0, 0);
-	if(fb->screeninfo.xres > 640){
-		display_png(fb, "graphics/black.png", 640, 0);
+	if(rotate == 1){
+		x_pos = x_pos + 480;
 	}
 	
-	display_png(fb, "graphics/black.png", x_pos, y_pos);
+	
+	
+	
+	
+	
+	
+	/*
+	if(fb->screeninfo.xres >= 1290){
+		display_png(fb, "graphics/black.png", 640, 0, 0);
+	}
+	*/
+	
+	printf("display_time: x_pos: %d\n", x_pos);
+	printf("display_time: y_pos: %d\n", y_pos);
+	
+	
 	
 	/*
     int y_pos = y_offset;
@@ -126,49 +147,66 @@ void display_time(struct tm *tp, struct framebuffer *fb, int x_offset, int y_off
 	*/
     /* TODO: allow user-specified display formats */
 	/*
-    png_size = display_png(fb, digit_filenames[mday/10], x_pos, y_pos);
+    png_size = display_png(fb, digit_filenames[mday/10], x_pos, y_pos, rotate);
     x_pos += png_size.x;
-    png_size = display_png(fb, digit_filenames[mday%10], x_pos, y_pos);
-    x_pos += png_size.x;
-
-    png_size = display_png(fb, short_month_filenames[month_num], x_pos, y_pos);
+    png_size = display_png(fb, digit_filenames[mday%10], x_pos, y_pos, rotate);
     x_pos += png_size.x;
 
-    png_size = display_png(fb, digit_filenames[year/1000], x_pos, y_pos);
+    png_size = display_png(fb, short_month_filenames[month_num], x_pos, y_pos, rotate);
     x_pos += png_size.x;
-    png_size = display_png(fb, digit_filenames[(year%1000)/100], x_pos, y_pos);
+
+    png_size = display_png(fb, digit_filenames[year/1000], x_pos, y_pos, rotate);
     x_pos += png_size.x;
-    png_size = display_png(fb, digit_filenames[(year%100)/10], x_pos, y_pos);
+    png_size = display_png(fb, digit_filenames[(year%1000)/100], x_pos, y_pos, rotate);
     x_pos += png_size.x;
-    png_size = display_png(fb, digit_filenames[year%10], x_pos, y_pos);
+    png_size = display_png(fb, digit_filenames[(year%100)/10], x_pos, y_pos, rotate);
+    x_pos += png_size.x;
+    png_size = display_png(fb, digit_filenames[year%10], x_pos, y_pos, rotate);
     x_pos += png_size.x;*/
 
 	
-    png_size = display_png(fb, digit_filenames[hours/10], x_pos, y_pos);
-    x_pos += png_size.x;
-	png_size = display_png(fb, digit_filenames[hours%10], x_pos, y_pos);
-    x_pos += png_size.x;
+    png_size = display_png(fb, digit_filenames[hours/10], x_pos, y_pos, rotate);
+	if(rotate){
+		x_pos -= png_size.x;
+	}else{
+		x_pos += png_size.x;
+	}
+    
+	png_size = display_png(fb, digit_filenames[hours%10], x_pos, y_pos, rotate);
+	if(rotate){
+		x_pos -= png_size.x;
+	}else{
+		x_pos += png_size.x;
+	}
     /*
-	png_size = display_png(fb, digit_filenames[hours%10], x_pos, y_pos);
+	png_size = display_png(fb, digit_filenames[hours%10], x_pos, y_pos, rotate);
     x_pos += (png_size.x - 15);
 	*/
 	
 	
 	/*
-    png_size = display_png(fb, short_month_filenames[12], x_pos, y_pos);
+    png_size = display_png(fb, short_month_filenames[12], x_pos, y_pos, rotate);
     x_pos += png_size.x;
 	*/
 	
-	png_size = display_png(fb, "graphics/split.png", x_pos, y_pos);
-    x_pos += png_size.x;
+	png_size = display_png(fb, "graphics/split.png", x_pos, y_pos, rotate);
+	if(rotate){
+		x_pos -= png_size.x;
+	}else{
+		x_pos += png_size.x;
+	}
 	
 	/*
 	x_pos += 100;
 	*/
 	
-    png_size = display_png(fb, digit_filenames[minutes/10], x_pos, y_pos);
-    x_pos += png_size.x;
-    png_size = display_png(fb, digit_filenames[minutes%10], x_pos, y_pos);
+    png_size = display_png(fb, digit_filenames[minutes/10], x_pos, y_pos, rotate);
+	if(rotate){
+		x_pos -= png_size.x;
+	}else{
+		x_pos += png_size.x;
+	}
+    png_size = display_png(fb, digit_filenames[minutes%10], x_pos, y_pos, rotate);
 	
 	
 	
