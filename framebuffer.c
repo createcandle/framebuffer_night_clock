@@ -146,7 +146,9 @@ struct image_size display_png(struct framebuffer *fb, char *filename,
     unsigned char *mem_ptr;
 	
 	printf("display_png: rotate:  %d\n", rotate);
-	printf("filename: %s\n", filename);
+	printf("display_png: filename: %s\n", filename);
+	printf("display_png: x_pos:  %d\n", x_pos);
+	printf("display_png: y_pos:  %d\n", y_pos);
 	
     fp = fopen(filename, "rb");
     if (!fp) {
